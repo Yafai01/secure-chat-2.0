@@ -2,42 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Secure Chat — Demo</title>
+  <title>Secure Chat — Light & Secure</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
-    body{font-family:Inter,system-ui,Arial;background:#071025;color:#e6eef8;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-    .card{width:96%;max-width:800px;background:#071025;padding:18px;border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,0.6)}
-    header{display:flex;gap:8px;align-items:center;margin-bottom:12px}
-    input,button{padding:8px 10px;border-radius:8px;border:1px solid #234;background:#082b44;color:#e6eef8}
-    #chat{height:360px;overflow:auto;border:1px solid #123;padding:10px;border-radius:8px;background:#031622;margin-bottom:8px}
-    .msg{margin:6px 0}.mine{color:#8ee6a1}.theirs{color:#8fd4ff}.meta{font-size:11px;color:#9fb0c4}
-    .controls{display:flex;gap:8px;margin-bottom:8px}
-    @media(max-width:600px){.controls{flex-direction:column}}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f3f4f6;color:#111827;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
+    .card{width:96%;max-width:600px;background:#ffffff;padding:20px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.08);display:flex;flex-direction:column;gap:12px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    header h2{margin:0;font-weight:600;color:#1f2937}
+    .controls, .send-box{display:flex;gap:10px;flex-wrap:wrap}
+    input{flex:1;padding:10px 14px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;font-size:14px;transition:all 0.3s ease-in-out}
+    input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,0.2);transform:translateY(-2px)}
+    input:hover{border-color:#3b82f6;box-shadow:0 4px 10px rgba(59,130,246,0.15)}
+    button{padding:10px 16px;border-radius:10px;border:none;background-color:#3b82f6;color:#fff;font-weight:500;cursor:pointer;transition:all 0.2s ease-in-out}
+    button:hover{background-color:#2563eb;box-shadow:0 4px 12px rgba(37,99,235,0.3);transform:translateY(-2px)}
+    #chat{height:300px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:10px;padding:12px;background:#f9fafb;display:flex;flex-direction:column;gap:6px}
+    .msg{padding:6px 10px;border-radius:8px}
+    .mine{background:#dbeafe;align-self:flex-end;color:#1e3a8a}
+    .theirs{background:#e0f2fe;align-self:flex-start;color:#0369a1}
+    .meta{font-size:12px;color:#6b7280;text-align:center}
   </style>
 </head>
 <body>
   <div class="card">
     <header>
-      <h2 style="margin:0">🔒 Secure Chat (Demo)</h2>
-      <div style="margin-left:auto" class="meta">Server relay; browser does encryption</div>
+      <h2>🔒 Secure Chat</h2>
+      <span class="meta">Server relays only ciphertext</span>
     </header>
 
     <div class="controls">
-      <input id="username" placeholder="Your name (e.g. Yafai)"/>
-      <input id="passphrase" placeholder="Shared passphrase (both users use same)"/>
+      <input id="username" placeholder="Enter your name"/>
+      <input id="passphrase" placeholder="Shared passphrase"/>
       <button id="btnConnect">Connect</button>
     </div>
 
     <div id="chat"></div>
 
-    <div style="display:flex;gap:8px">
-      <input id="message" placeholder="Type a message..." style="flex:1"/>
+    <div class="send-box">
+      <input id="message" placeholder="Type a message..."/>
       <button id="btnSend">Send</button>
     </div>
-
-    <p style="font-size:12px;color:#9fb0c4;margin-top:10px">
-      Note: Demo uses passphrase-derived AES for simplicity. Production requires proper key exchange and per-message IVs.
-    </p>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -56,43 +59,56 @@
     let passphrase = '';
 
     function append(html, cls='') {
-      const d = document.createElement('div'); d.className = 'msg ' + cls; d.innerHTML = html; chatEl.appendChild(d); chatEl.scrollTop = chatEl.scrollHeight;
+      const d = document.createElement('div');
+      d.className = 'msg ' + cls;
+      d.innerHTML = html;
+      chatEl.appendChild(d);
+      chatEl.scrollTop = chatEl.scrollHeight;
     }
 
-    function deriveKeyAndIv(pass) {
-      const key = CryptoJS.SHA256(pass);
-      const ivHex = CryptoJS.SHA256(pass + 'iv').toString(CryptoJS.enc.Hex).slice(0, 32);
-      return { key, iv: CryptoJS.enc.Hex.parse(ivHex) };
-    }
+    function deriveKey(pass) { return CryptoJS.SHA256(pass); }
 
     function encryptMessage(plain, pass) {
-      const { key, iv } = deriveKeyAndIv(pass);
+      const key = deriveKey(pass);
+      const iv = CryptoJS.lib.WordArray.random(16); // random 128-bit IV
       const cipher = CryptoJS.AES.encrypt(plain, key, { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
-      return cipher.toString();
+      return iv.toString() + ':' + cipher.toString(); // prepend IV
     }
 
-    function decryptMessage(ciphertext, pass) {
-      const { key, iv } = deriveKeyAndIv(pass);
-      const bytes = CryptoJS.AES.decrypt(ciphertext, key, { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
-      return bytes.toString(CryptoJS.enc.Utf8);
+    function decryptMessage(payload, pass) {
+      try {
+        const [ivHex, cipherText] = payload.split(':');
+        const key = deriveKey(pass);
+        const iv = CryptoJS.enc.Hex.parse(ivHex);
+        const bytes = CryptoJS.AES.decrypt(cipherText, key, { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+        const plain = bytes.toString(CryptoJS.enc.Utf8);
+        if (!plain) throw new Error('Empty after decrypt');
+        return plain;
+      } catch {
+        return null;
+      }
     }
 
     btnConnect.onclick = () => {
       username = usernameInput.value.trim() || 'Anonymous';
-      passphrase = passInput.value;
-      if (!passphrase) return alert('Enter a shared passphrase (both users must use same).');
+      passphrase = passInput.value.trim();
+      if (!passphrase) return alert('Enter a shared passphrase.');
       socket = io();
+
       socket.on('connect', () => append(`<span class="meta">Connected as <b>${username}</b> — socket ${socket.id}</span>`));
-      socket.on('chat message', (cipher) => {
-        try {
-          const plain = decryptMessage(cipher, passphrase);
-          if (!plain) throw new Error('empty after decrypt');
+
+      socket.on('chat message', (payload) => {
+        const plain = decryptMessage(payload, passphrase);
+        if (plain) {
           append(`<span class="theirs"><b>${plain}</b></span>`);
-        } catch (e) {
-          append(`<span class="meta">Received encrypted message (failed to decrypt)</span>`);
+        } else {
+          append(`<span class="meta">Failed to decrypt message</span>`);
         }
       });
-      btnConnect.disabled = true; usernameInput.disabled = true; passInput.disabled = true;
+
+      btnConnect.disabled = true;
+      usernameInput.disabled = true;
+      passInput.disabled = true;
     };
 
     btnSend.onclick = () => {
@@ -101,7 +117,7 @@
       if (!text) return;
       const payload = `${username}: ${text}`;
       const cipher = encryptMessage(payload, passphrase);
-      append(`<span class="mine"><b>You:</b> ${payload}</span>`, 'mine');
+      append(`<span class="mine"><b>${username}:</b> ${text}</span>`, 'mine');
       socket.emit('chat message', cipher);
       messageInput.value = '';
     };
