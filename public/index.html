@@ -2,23 +2,125 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Secure Chat — Light & Secure</title>
+  <title>Secure Chat 3D Pop — Light & Secure</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
-    body{font-family:'Segoe UI',Arial,sans-serif;background:#f3f4f6;color:#111827;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
-    .card{width:96%;max-width:600px;background:#ffffff;padding:20px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.08);display:flex;flex-direction:column;gap:12px}
-    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-    header h2{margin:0;font-weight:600;color:#1f2937}
-    .controls, .send-box{display:flex;gap:10px;flex-wrap:wrap}
-    input{flex:1;padding:10px 14px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;font-size:14px;transition:all 0.3s ease-in-out}
-    input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,0.2);transform:translateY(-2px)}
-    input:hover{border-color:#3b82f6;box-shadow:0 4px 10px rgba(59,130,246,0.15)}
-    button{padding:10px 16px;border-radius:10px;border:none;background-color:#3b82f6;color:#fff;font-weight:500;cursor:pointer;transition:all 0.2s ease-in-out}
-    button:hover{background-color:#2563eb;box-shadow:0 4px 12px rgba(37,99,235,0.3);transform:translateY(-2px)}
-    #chat{height:300px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:10px;padding:12px;background:#f9fafb;display:flex;flex-direction:column;gap:6px}
-    .msg{padding:6px 10px;border-radius:8px}
-    .mine{background:#dbeafe;align-self:flex-end;color:#1e3a8a}
-    .theirs{background:#e0f2fe;align-self:flex-start;color:#0369a1}
+    body{
+      font-family:'Segoe UI',Arial,sans-serif;
+      background:#f3f4f6;
+      color:#111827;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
+      margin:0;
+    }
+    .card{
+      width:96%;
+      max-width:600px;
+      background:#ffffff;
+      padding:20px;
+      border-radius:12px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.1);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:12px;
+    }
+    header h2{
+      margin:0;
+      font-weight:600;
+      color:#1f2937;
+    }
+    header .meta{
+      font-size:12px;
+      color:#6b7280;
+    }
+    .controls, .send-box{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    input{
+      flex:1;
+      padding:10px 14px;
+      border-radius:10px;
+      border:1px solid #d1d5db;
+      background:#f9fafb;
+      font-size:14px;
+      transition:all 0.3s ease-in-out;
+    }
+    input:focus{
+      outline:none;
+      border-color:#3b82f6;
+      box-shadow:0 0 0 2px rgba(59,130,246,0.2);
+      transform:translateY(-2px);
+    }
+    input:hover{
+      border-color:#3b82f6;
+      box-shadow:0 4px 10px rgba(59,130,246,0.15);
+    }
+    button{
+      padding:10px 16px;
+      border-radius:10px;
+      border:none;
+      background-color:#3b82f6;
+      color:#fff;
+      font-weight:500;
+      cursor:pointer;
+      transition:all 0.2s ease-in-out;
+    }
+    button:hover{
+      background-color:#2563eb;
+      box-shadow:0 4px 12px rgba(37,99,235,0.3);
+      transform:translateY(-2px);
+    }
+    #chat{
+      height:350px;
+      overflow-y:auto;
+      border:1px solid #e5e7eb;
+      border-radius:10px;
+      padding:12px;
+      background:#f9fafb;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .msg{
+      padding:8px 12px;
+      border-radius:12px;
+      max-width:75%;
+      word-wrap:break-word;
+      box-shadow:0 4px 8px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.05);
+      transition: all 0.2s ease;
+      opacity:0;
+      transform: scale(0.8);
+      animation: pop 0.3s forwards;
+    }
+    @keyframes pop {
+      0% { opacity:0; transform:scale(0.8); }
+      60% { opacity:1; transform:scale(1.05); }
+      100% { opacity:1; transform:scale(1); }
+    }
+    .mine{
+      background: linear-gradient(145deg, #dbeafe, #93c5fd);
+      align-self:flex-end;
+      color:#1e3a8a;
+    }
+    .theirs{
+      background: linear-gradient(145deg, #e0f2fe, #bae6fd);
+      align-self:flex-start;
+      color:#0369a1;
+    }
+    .mine:hover, .theirs:hover{
+      transform: perspective(500px) rotateY(3deg) translateY(-2px);
+      box-shadow:0 6px 12px rgba(0,0,0,0.12),0 3px 6px rgba(0,0,0,0.06);
+    }
     .meta{font-size:12px;color:#6b7280;text-align:center}
   </style>
 </head>
@@ -70,9 +172,9 @@
 
     function encryptMessage(plain, pass) {
       const key = deriveKey(pass);
-      const iv = CryptoJS.lib.WordArray.random(16); // random 128-bit IV
+      const iv = CryptoJS.lib.WordArray.random(16);
       const cipher = CryptoJS.AES.encrypt(plain, key, { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
-      return iv.toString() + ':' + cipher.toString(); // prepend IV
+      return iv.toString() + ':' + cipher.toString();
     }
 
     function decryptMessage(payload, pass) {
@@ -84,9 +186,7 @@
         const plain = bytes.toString(CryptoJS.enc.Utf8);
         if (!plain) throw new Error('Empty after decrypt');
         return plain;
-      } catch {
-        return null;
-      }
+      } catch { return null; }
     }
 
     btnConnect.onclick = () => {
@@ -100,7 +200,8 @@
       socket.on('chat message', (payload) => {
         const plain = decryptMessage(payload, passphrase);
         if (plain) {
-          append(`<span class="theirs"><b>${plain}</b></span>`);
+          const isMine = plain.startsWith(username + ':');
+          append(`<span class="${isMine?'mine':'theirs'}"><b>${plain}</b></span>`);
         } else {
           append(`<span class="meta">Failed to decrypt message</span>`);
         }
@@ -117,12 +218,11 @@
       if (!text) return;
       const payload = `${username}: ${text}`;
       const cipher = encryptMessage(payload, passphrase);
-      append(`<span class="mine"><b>${username}:</b> ${text}</span>`, 'mine');
       socket.emit('chat message', cipher);
       messageInput.value = '';
     };
 
-    messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') btnSend.click(); });
+    messageInput.addEventListener('keypress', (e) => { if(e.key==='Enter') btnSend.click(); });
   </script>
 </body>
 </html>
