@@ -1,35 +1,19 @@
-// server.js (ES modules - Node 22+)
-import express from "express";
-import { createServer } from "http";
-import { Server } from "socket.io";
-import path from "path";
-import { fileURLToPath } from "url";
+// Entry point: `npm start` (Node 22+).
+import { createChatServer } from "./src/server.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const PORT = Number.parseInt(process.env.PORT ?? "3000", 10);
+const HOST = process.env.HOST ?? "0.0.0.0";
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer);
+const { httpServer, io } = createChatServer({ allowedOrigins });
 
-const PORT = process.env.PORT || 3000;
-
-// serve frontend from /public
-app.use(express.static(path.join(__dirname, "public")));
-
-io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
-
-  // relay ONLY encrypted payloads (demo expects ciphertext)
-  socket.on("chat message", (msg) => {
-    io.emit("chat message", msg);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Secure Chat listening on http://localhost:${PORT}`);
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-});
+const shutdown = () => io.close(() => process.exit(0));
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
