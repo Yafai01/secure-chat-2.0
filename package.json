@@ -1,10 +1,15 @@
 {
   "name": "secure-chat",
-  "version": "22.0.0",
+  "version": "2.0.0",
+  "private": true,
+  "description": "End-to-end encrypted chat rooms protected by a shared passphrase (Node.js + Socket.IO + Web Crypto).",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test",
+    "check": "node --check server.js && node --check src/server.js && node --check src/validation.js && node --check src/rate-limiter.js && node --check public/js/crypto.js && node --check public/js/app.js"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -12,5 +17,8 @@
   "dependencies": {
     "express": "^4.19.2",
     "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
   }
 }
