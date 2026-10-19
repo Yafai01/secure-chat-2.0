@@ -160,10 +160,20 @@
     let username = '';
     let passphrase = '';
 
-    function append(html, cls='') {
+    // Builds message DOM nodes; strings are inserted as text, never parsed as HTML.
+    function bold(text) {
+      const b = document.createElement('b');
+      b.textContent = text;
+      return b;
+    }
+
+    function append(parts, cls) {
       const d = document.createElement('div');
-      d.className = 'msg ' + cls;
-      d.innerHTML = html;
+      d.className = 'msg';
+      const span = document.createElement('span');
+      span.className = cls;
+      span.append(...parts);
+      d.appendChild(span);
       chatEl.appendChild(d);
       chatEl.scrollTop = chatEl.scrollHeight;
     }
@@ -195,15 +205,15 @@
       if (!passphrase) return alert('Enter a shared passphrase.');
       socket = io();
 
-      socket.on('connect', () => append(`<span class="meta">Connected as <b>${username}</b> — socket ${socket.id}</span>`));
+      socket.on('connect', () => append(['Connected as ', bold(username), ` — socket ${socket.id}`], 'meta'));
 
       socket.on('chat message', (payload) => {
         const plain = decryptMessage(payload, passphrase);
         if (plain) {
           const isMine = plain.startsWith(username + ':');
-          append(`<span class="${isMine?'mine':'theirs'}"><b>${plain}</b></span>`);
+          append([bold(plain)], isMine ? 'mine' : 'theirs');
         } else {
-          append(`<span class="meta">Failed to decrypt message</span>`);
+          append(['Failed to decrypt message'], 'meta');
         }
       });
 

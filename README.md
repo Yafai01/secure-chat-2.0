@@ -48,4 +48,4 @@ public/index.html   # Chat UI and client-side encryption
 
 ## Security note
 
-This is an educational demo, not a production-grade secure messenger. In particular, the key is derived with a single unsalted SHA-256 hash rather than a password-based KDF, messages are not authenticated (no MAC/AEAD), there is no identity verification, and decrypted text is rendered as HTML. Do not rely on it to protect sensitive information.
+This is an educational demo, not a production-grade secure messenger. In particular, the key is derived with a single unsalted SHA-256 hash rather than a password-based KDF, messages are not authenticated (no MAC/AEAD), and there is no identity verification. Decrypted messages and usernames are rendered as plain text (via `textContent`), not HTML. Do not rely on it to protect sensitive information.
